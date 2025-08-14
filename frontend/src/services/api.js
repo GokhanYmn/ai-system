@@ -27,6 +27,9 @@ export const apiService = {
   // Trading servisleri
   executeTrade: (tradeParams) => api.post('/trading/execute', tradeParams),
   getLearningPerformance: () => api.get('/learning/performance'),
+  
+  // Report servisleri
+  generateReport: (symbol) => api.post(`/reports/generate?symbol=${symbol}`),
 };
 
 export default api;
