@@ -8,14 +8,16 @@ import {
   ReloadOutlined,
   ThunderboltOutlined,
   GlobalOutlined,
-  BarChartOutlined
+  BarChartOutlined,
+  BellOutlined
 } from '@ant-design/icons';
 import { apiService } from '../services/api';
+import NotificationPanel from './NotificationPanel';
+import PerformanceDashboard from './PerformanceDashboard';
 
 const { Header, Content } = Layout;
 const { Title, Text } = Typography;
 const { Option } = Select;
-const { TabPane } = Tabs;
 
 const Dashboard = () => {
   const [loading, setLoading] = useState(false);
@@ -72,11 +74,9 @@ const Dashboard = () => {
       const response = await apiService.generateReport(symbol);
       
       if (response.data.success) {
-        // PDF'i indir
         const downloadUrl = response.data.report_info.download_url;
         const filename = response.data.report_info.filename;
         
-        // Tarayıcıda indirme başlat
         const link = document.createElement('a');
         link.href = `http://localhost:8003${downloadUrl}`;
         link.download = filename;
@@ -266,190 +266,95 @@ const Dashboard = () => {
           title={`${symbol} Analiz Sonucu`}
           style={{ marginTop: '16px' }}
         >
-          <Row gutter={[16, 16]}>
-            <Col xs={24} md={12}>
-              <div style={{ textAlign: 'center', padding: '16px' }}>
-                <Title level={3} style={{ 
-                  color: (typeof analysisResult.recommendation === 'string' && analysisResult.recommendation.includes('AL')) ? '#52c41a' : 
-                         (typeof analysisResult.recommendation === 'string' && analysisResult.recommendation.includes('SAT')) ? '#f5222d' : 
-                         (typeof analysisResult.quick_recommendation === 'string' && analysisResult.quick_recommendation.includes('AL')) ? '#52c41a' :
-                         (typeof analysisResult.quick_recommendation === 'string' && analysisResult.quick_recommendation.includes('SAT')) ? '#f5222d' : '#faad14',
-                  margin: 0 
-                }}>
-                  {analysisResult.recommendation || analysisResult.quick_recommendation || 'BEKLE'}
-                </Title>
-                <Text type="secondary">Öneri</Text>
-              </div>
-            </Col>
-            <Col xs={24} md={12}>
-              <div style={{ textAlign: 'center', padding: '16px' }}>
-                <Title level={3} style={{ color: '#1890ff', margin: 0 }}>
-                  {analysisResult.confidence || 'Orta'}
-                </Title>
-                <Text type="secondary">Güven Seviyesi</Text>
-              </div>
-            </Col>
-          </Row>
-
-          {/* Rapor İçeriği - PDF'teki gibi */}
-          {analysisResult && (
-            <div style={{ marginTop: '20px' }}>
-              <Card title="📋 Detaylı Analiz Raporu" extra={
-                <Button
-                  onClick={generateReport}
-                  loading={reportLoading}
-                  icon={<DollarOutlined />}
-                  type="link"
-                  style={{ color: '#52c41a' }}
-                >
-                  📄 PDF İndir
-                </Button>
-              }>
-                {/* Genel Bilgiler Tablosu */}
-                <div style={{ marginBottom: '20px' }}>
-                  <Text strong style={{ fontSize: '16px', color: '#1890ff' }}>📊 Genel Bilgiler</Text>
-                  <Table 
-                    size="small"
-                    showHeader={false}
-                    pagination={false}
-                    dataSource={[
-                      { key: '1', label: 'Hisse Kodu:', value: symbol },
-                      { key: '2', label: 'Analiz Tarihi:', value: new Date().toLocaleDateString('tr-TR') },
-                      { key: '3', label: 'Mevcut Fiyat:', value: 'TL 91.50' },
-                      { key: '4', label: 'Hedef Fiyat:', value: 'TL 105.50' },
-                      { key: '5', label: 'Önerilen İşlem:', value: analysisResult.recommendation || analysisResult.quick_recommendation },
-                      { key: '6', label: 'Güven Seviyesi:', value: `%${analysisResult.confidence || analysisResult.final_score || 'N/A'}` }
-                    ]}
-                    columns={[
-                      { dataIndex: 'label', width: '40%', render: (text) => <Text strong>{text}</Text> },
-                      { dataIndex: 'value', render: (text) => <Text>{text}</Text> }
-                    ]}
-                    style={{ backgroundColor: '#fafafa' }}
-                  />
-                </div>
-
-                {/* Agent Analizleri Tablosu */}
-                <div style={{ marginBottom: '20px' }}>
-                  <Text strong style={{ fontSize: '16px', color: '#1890ff' }}>🤖 Agent Analizleri</Text>
-                  <Table 
-                    size="small"
-                    pagination={false}
-                    dataSource={[
-                      { 
-                        key: 'financial', 
-                        agent: '💰 Financial', 
-                        skor: `${analysisResult.analysis_results?.financial?.investment_score || 75}/100`,
-                        durum: analysisResult.analysis_results?.financial?.status === 'success' ? 'Başarılı' : 'Hata',
-                        degerlendirme: analysisResult.analysis_results?.financial?.investment_score >= 70 ? 'İyi' : 'Orta'
-                      },
-                      { 
-                        key: 'technical', 
-                        agent: '📈 Technical', 
-                        skor: `${analysisResult.analysis_results?.technical?.technical_score ? Math.abs(analysisResult.analysis_results.technical.technical_score * 20 + 50).toFixed(0) : 50}/100`,
-                        durum: analysisResult.analysis_results?.technical?.status === 'success' ? 'Başarılı' : 'Hata',
-                        degerlendirme: 'Orta'
-                      },
-                      { 
-                        key: 'news', 
-                        agent: '📰 News', 
-                        skor: `${analysisResult.analysis_results?.news?.confidence ? (analysisResult.analysis_results.news.confidence * 100).toFixed(0) : 75}/100`,
-                        durum: analysisResult.analysis_results?.news?.status === 'success' ? 'Başarılı' : 'Hata',
-                        degerlendirme: 'İyi'
-                      },
-                      { 
-                        key: 'data', 
-                        agent: '📊 Data', 
-                        skor: '80/100',
-                        durum: 'Başarılı',
-                        degerlendirme: 'İyi'
-                      }
-                    ]}
-                    columns={[
-                      { title: 'Agent', dataIndex: 'agent', render: (text) => <Text strong>{text}</Text> },
-                      { title: 'Skor', dataIndex: 'skor', align: 'center' },
-                      { title: 'Durum', dataIndex: 'durum', align: 'center', render: (text) => (
-                        <span style={{ color: text === 'Başarılı' ? '#52c41a' : '#f5222d' }}>{text}</span>
-                      )},
-                      { title: 'Değerlendirme', dataIndex: 'degerlendirme', align: 'center' }
-                    ]}
-                    style={{ backgroundColor: '#fafafa' }}
-                  />
-                </div>
-
-                {/* Risk Yönetimi */}
-                <div style={{ marginBottom: '20px' }}>
-                  <Text strong style={{ fontSize: '16px', color: '#1890ff' }}>⚠️ Risk Yönetimi</Text>
-                  <Card size="small" style={{ marginTop: '8px', backgroundColor: '#fff7e6', border: '1px solid #ffd591' }}>
-                    <ul style={{ margin: 0, paddingLeft: '20px' }}>
-                      <li><Text><strong>Risk Seviyesi:</strong> Orta</Text></li>
-                      <li><Text><strong>Stop Loss:</strong> TL 85.40</Text></li>
-                      <li><Text><strong>Beklenen Getiri:</strong> %15.3</Text></li>
-                      <li><Text><strong>Risk/Getiri Oranı:</strong> 1:2.5</Text></li>
-                    </ul>
-                  </Card>
-                </div>
-
-                {/* Sonuç ve Öneriler */}
-                <div>
-                  <Text strong style={{ fontSize: '16px', color: '#1890ff' }}>🎯 Sonuç ve Öneriler</Text>
-                  <Card size="small" style={{ marginTop: '8px', backgroundColor: '#f6ffed', border: '1px solid #b7eb8f' }}>
-                    <Text style={{ lineHeight: '1.6' }}>
-                      <strong>{symbol}</strong> hissesi için yapılan çoklu-agent analizinde <strong>{analysisResult.recommendation || analysisResult.quick_recommendation}</strong> önerisi çıkmıştır. 
-                      %{analysisResult.confidence || analysisResult.final_score} güven seviyesi ile bu hissenin kısa-orta vadede 
-                      {(analysisResult.recommendation || analysisResult.quick_recommendation || '').includes('AL') ? ' pozitif performans göstereceği' : ' dikkatli izlenmesi gerektiği'} değerlendirilmektedir.
-                    </Text>
-                    <div style={{ marginTop: '12px' }}>
-                      <Text strong>Önemli Noktalar:</Text>
-                      <ul style={{ marginTop: '8px', marginBottom: 0 }}>
-                        <li>Finansal ve teknik göstergeler {analysisResult.analysis_results?.financial?.investment_score > 70 ? 'pozitif' : 'karışık'} sinyal veriyor</li>
-                        <li>Piyasa duyarlılığı {analysisResult.analysis_results?.news?.sentiment === 'positive' ? 'olumlu' : 'nötr'}</li>
-                        <li>Risk yönetimi kurallarına dikkat edilmeli</li>
-                        <li>Pozisyon büyüklüğü risk toleransına uygun olmalı</li>
-                      </ul>
-                    </div>
-                  </Card>
-                </div>
-
-                {/* Footer */}
-                <div style={{ marginTop: '20px', textAlign: 'center', borderTop: '1px solid #f0f0f0', paddingTop: '16px' }}>
-                  <Text type="secondary" style={{ fontSize: '12px' }}>
-                    Bu rapor Multi-Agent AI Sistemi tarafından {new Date().toLocaleString('tr-TR')} tarihinde oluşturulmuştur.<br/>
-                    ⚠️ Bu rapor yatırım danışmanlığı değildir. Yatırım kararlarınızı almadan önce uzmanlardan görüş alınız.
-                  </Text>
-                </div>
-              </Card>
-            </div>
-          )}
-
-          {/* İşlem Özeti sadece kapsamlı analizde */}
-          {analysisResult.execution_summary && (
-            <div style={{ marginTop: '16px' }}>
-              <Card size="small" style={{ backgroundColor: '#f6ffed', border: '1px solid #b7eb8f' }}>
-                <Text strong style={{ color: '#389e0d' }}>⚡ İşlem Özeti:</Text>
-                <Row gutter={[16, 8]} style={{ marginTop: '8px' }}>
-                  <Col span={8}>
-                    <Text style={{ fontSize: '12px' }}>
-                      🕐 Süre: <strong>{analysisResult.execution_summary.workflow_duration_seconds?.toFixed(2)}s</strong>
-                    </Text>
-                  </Col>
-                  <Col span={8}>
-                    <Text style={{ fontSize: '12px' }}>
-                      🤖 Agent: <strong>{analysisResult.execution_summary.agents_utilized}</strong>
-                    </Text>
-                  </Col>
-                  <Col span={8}>
-                    <Text style={{ fontSize: '12px' }}>
-                      ✅ Başarı: <strong>%{(analysisResult.execution_summary.success_rate * 100)?.toFixed(0)}</strong>
-                    </Text>
-                  </Col>
-                </Row>
-              </Card>
-            </div>
-          )}
+          <Alert
+            message={analysisResult.recommendation || analysisResult.quick_recommendation || 'BEKLE'}
+            description={`Güven seviyesi: ${analysisResult.confidence || 'Orta'}`}
+            type="info"
+            showIcon
+          />
         </Card>
       )}
     </Card>
   );
+
+  // Modern Tabs items
+  const tabItems = [
+    {
+      key: 'overview',
+      label: (
+        <span>
+          <DashboardOutlined />
+          Sistem Özeti
+        </span>
+      ),
+      children: (
+        <div>
+          <div style={{ marginBottom: '24px' }}>
+            {renderSystemOverview()}
+          </div>
+          {renderAgentStatus()}
+        </div>
+      ),
+    },
+    {
+      key: 'analysis',
+      label: (
+        <span>
+          <ArrowUpOutlined />
+          Analiz
+        </span>
+      ),
+      children: renderAnalysisPanel(),
+    },
+    {
+      key: 'notifications',
+      label: (
+        <span>
+          <BellOutlined />
+          Bildirimler
+        </span>
+      ),
+      children: <NotificationPanel />,
+    },
+    {
+      key: 'trading',
+      label: (
+        <span>
+          <DollarOutlined />
+          İşlemler
+        </span>
+      ),
+      children: (
+        <Card title="İşlem Paneli">
+          <Alert
+            message="Yakında"
+            description="İşlem paneli geliştirilme aşamasında..."
+            type="info"
+            showIcon
+          />
+        </Card>
+      ),
+    },
+    {
+      key: 'performance',
+      label: (
+        <span>
+          <BarChartOutlined />
+          Performans
+        </span>
+      ),
+      children: (
+        <Card title="Sistem Performansı">
+          <Alert
+            message="Yakında"
+            description="Performans metrikleri geliştirilme aşamasında..."
+            type="info"
+            showIcon
+          />
+        </Card>
+      ),
+    },
+  ];
 
   return (
     <Layout style={{ minHeight: '100vh' }}>
@@ -497,40 +402,11 @@ const Dashboard = () => {
           />
         )}
 
-        <Tabs defaultActiveKey="overview" type="card">
-          <TabPane tab={<span><DashboardOutlined /> Sistem Özeti</span>} key="overview">
-            <div style={{ marginBottom: '24px' }}>
-              {renderSystemOverview()}
-            </div>
-            {renderAgentStatus()}
-          </TabPane>
-
-          <TabPane tab={<span><ArrowUpOutlined /> Analiz</span>} key="analysis">
-            {renderAnalysisPanel()}
-          </TabPane>
-
-          <TabPane tab={<span><DollarOutlined /> İşlemler</span>} key="trading">
-            <Card title="İşlem Paneli">
-              <Alert
-                message="Yakında"
-                description="İşlem paneli geliştirilme aşamasında..."
-                type="info"
-                showIcon
-              />
-            </Card>
-          </TabPane>
-
-          <TabPane tab={<span><BarChartOutlined /> Performans</span>} key="performance">
-            <Card title="Sistem Performansı">
-              <Alert
-                message="Yakında"
-                description="Performans metrikleri geliştirilme aşamasında..."
-                type="info"
-                showIcon
-              />
-            </Card>
-          </TabPane>
-        </Tabs>
+        <Tabs
+          defaultActiveKey="overview"
+          type="card"
+          items={tabItems}
+        />
       </Content>
     </Layout>
   );

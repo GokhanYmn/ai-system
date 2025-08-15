@@ -22,6 +22,7 @@ from trading_agent import TradingAgent
 from learning_agent import LearningAgent
 from coordinator_agent import CoordinatorAgent
 from report_agent import ReportAgent
+from notification_agent import NotificationAgent
 
 # Global variables
 agent_system = None
@@ -42,7 +43,8 @@ async def lifespan(app: FastAPI):
         'decision_agent': DecisionAgent(),
         'trading_agent': TradingAgent(),
         'learning_agent': LearningAgent(),
-        'report_agent': ReportAgent()
+        'report_agent': ReportAgent(),
+        'notification_agent': NotificationAgent()
     }
     
     # Initialize coordinator

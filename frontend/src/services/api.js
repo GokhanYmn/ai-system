@@ -30,6 +30,18 @@ export const apiService = {
   
   // Report servisleri
   generateReport: (symbol) => api.post(`/reports/generate?symbol=${symbol}`),
+
+    // Notification servisleri
+  sendEmailNotification: (emailData) => api.post('/notifications/email', emailData),
+  sendTelegramNotification: (telegramData) => api.post('/notifications/telegram', telegramData),
+  subscribeUser: (userData) => api.post('/notifications/subscribe', userData),
+  scheduleNotification: (scheduleConfig) => api.post('/notifications/schedule', scheduleConfig),
+  broadcastAnalysis: (symbol) => api.post(`/notifications/broadcast/${symbol}`),
+  getNotificationStats: () => api.get('/notifications/stats'),
+  comprehensiveAnalysisWithNotification: (symbol, notifySubscribers = true) => 
+    api.post(`/analysis/comprehensive/${symbol}/notify?notify_subscribers=${notifySubscribers}`),
 };
+
+
 
 export default api;
