@@ -346,3 +346,4 @@ if __name__ == "__main__":
     print("Birleşik Analiz:", result2)
     
     print("Agent Durumu:", agent.get_status())
+    
