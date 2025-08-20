@@ -90,7 +90,7 @@ const PortfolioPanel = () => {
           <Col xs={24} md={12}>
             <Form.Item label="Risk Toleransı" name="risk_tolerance">
               <Select>
-                <Option value="conservative">Muhafazakar</Option>
+                <Option value="conservative">İhtiyatlı risk</Option>
                 <Option value="moderate">Orta Risk</Option>
                 <Option value="aggressive">Agresif</Option>
               </Select>
@@ -129,7 +129,7 @@ const PortfolioPanel = () => {
           </Col>
           
           <Col xs={24} md={12}>
-            <Form.Item label="Yatırım Ufku" name="investment_horizon">
+            <Form.Item label="Yatırım Vadesi" name="investment_horizon">
               <Select>
                 <Option value="short_term">Kısa Vade (1-2 yıl)</Option>
                 <Option value="medium_term">Orta Vade (2-5 yıl)</Option>
@@ -292,7 +292,7 @@ const PortfolioPanel = () => {
       >
         <Form.Item name="risk_tolerance" initialValue="moderate">
           <Select style={{ width: 150 }}>
-            <Option value="conservative">Muhafazakar</Option>
+            <Option value="conservative">İhtiyatlı risk</Option>
             <Option value="moderate">Orta Risk</Option>
             <Option value="aggressive">Agresif</Option>
           </Select>

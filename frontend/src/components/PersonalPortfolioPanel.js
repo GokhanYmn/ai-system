@@ -24,13 +24,15 @@ import {
 import { 
   PlusOutlined, 
   DollarOutlined, 
-  TrendingUpOutlined,
-  TrendingDownOutlined,
+  ArrowUpOutlined,
+  ArrowDownOutlined,
   EyeOutlined,
   EditOutlined,
   DeleteOutlined,
   LineChartOutlined,
-  PieChartOutlined
+  PieChartOutlined,
+  RiseOutlined,
+  FallOutlined
 } from '@ant-design/icons';
 import { apiService } from '../services/api';
 
@@ -58,6 +60,18 @@ const PersonalPortfolioPanel = () => {
       setPortfolioData(response.data);
     } catch (error) {
       console.error('Portfolio data loading error:', error);
+      // Set mock data if API fails
+      setPortfolioData({
+        portfolio_performance: {
+          total_positions: 0,
+          total_invested: 0,
+          current_portfolio_value: 0,
+          total_unrealized_pnl: 0,
+          total_return_pct: 0,
+          best_performer: null,
+          worst_performer: null
+        }
+      });
     } finally {
       setLoading(false);
     }
@@ -130,10 +144,24 @@ const PersonalPortfolioPanel = () => {
   };
 
   const renderPortfolioSummary = () => {
-    if (!portfolioData) return null;
+    // Guard clause for null/undefined data
+    if (!portfolioData || !portfolioData.portfolio_performance) {
+      return (
+        <Row gutter={16} style={{ marginBottom: 24 }}>
+          <Col span={24}>
+            <Alert
+              message="Portföy verisi yükleniyor..."
+              description="Lütfen bekleyin veya bir pozisyon ekleyin."
+              type="info"
+              showIcon
+            />
+          </Col>
+        </Row>
+      );
+    }
 
     const { portfolio_performance } = portfolioData;
-    const isProfit = portfolio_performance.total_unrealized_pnl >= 0;
+    const isProfit = (portfolio_performance.total_unrealized_pnl || 0) >= 0;
 
     return (
       <Row gutter={16} style={{ marginBottom: 24 }}>
@@ -141,7 +169,7 @@ const PersonalPortfolioPanel = () => {
           <Card>
             <Statistic
               title="Toplam Yatırım"
-              value={portfolio_performance.total_invested}
+              value={portfolio_performance.total_invested || 0}
               precision={2}
               suffix="TL"
               prefix={<DollarOutlined />}
@@ -153,11 +181,11 @@ const PersonalPortfolioPanel = () => {
           <Card>
             <Statistic
               title="Güncel Değer"
-              value={portfolio_performance.current_portfolio_value}
+              value={portfolio_performance.current_portfolio_value || 0}
               precision={2}
               suffix="TL"
               valueStyle={{ color: isProfit ? '#3f8600' : '#cf1322' }}
-              prefix={isProfit ? <TrendingUpOutlined /> : <TrendingDownOutlined />}
+              prefix={isProfit ? <RiseOutlined /> : <FallOutlined />}
             />
           </Card>
         </Col>
@@ -166,11 +194,11 @@ const PersonalPortfolioPanel = () => {
           <Card>
             <Statistic
               title="Toplam K/Z"
-              value={portfolio_performance.total_unrealized_pnl}
+              value={portfolio_performance.total_unrealized_pnl || 0}
               precision={2}
               suffix="TL"
               valueStyle={{ color: isProfit ? '#3f8600' : '#cf1322' }}
-              prefix={isProfit ? <TrendingUpOutlined /> : <TrendingDownOutlined />}
+              prefix={isProfit ? <ArrowUpOutlined /> : <ArrowDownOutlined />}
             />
           </Card>
         </Col>
@@ -179,7 +207,7 @@ const PersonalPortfolioPanel = () => {
           <Card>
             <Statistic
               title="Toplam Getiri"
-              value={portfolio_performance.total_return_pct}
+              value={portfolio_performance.total_return_pct || 0}
               precision={2}
               suffix="%"
               valueStyle={{ color: isProfit ? '#3f8600' : '#cf1322' }}
@@ -191,8 +219,6 @@ const PersonalPortfolioPanel = () => {
   };
 
   const renderPositionsTable = () => {
-    if (!portfolioData) return null;
-
     // Mock positions data (normally would come from API)
     const positions = [
       {
@@ -305,6 +331,7 @@ const PersonalPortfolioPanel = () => {
             <Button 
               icon={<LineChartOutlined />}
               onClick={updatePrices}
+              loading={loading}
             >
               Fiyat Güncelle
             </Button>
@@ -323,7 +350,15 @@ const PersonalPortfolioPanel = () => {
   };
 
   const renderPerformanceAnalysis = () => {
-    if (!performanceData) return null;
+    if (!performanceData) {
+      return (
+        <Alert
+          message="Performans analizi için butona tıklayın"
+          type="info"
+          showIcon
+        />
+      );
+    }
 
     const { personal_portfolio_analysis } = performanceData;
 
@@ -335,19 +370,19 @@ const PersonalPortfolioPanel = () => {
               <div style={{ marginBottom: 8 }}>
                 <Text>Konsantrasyon Riski: </Text>
                 <Tag color={
-                  personal_portfolio_analysis.risk_analysis.concentration_risk === 'LOW' ? 'green' :
-                  personal_portfolio_analysis.risk_analysis.concentration_risk === 'MEDIUM' ? 'orange' : 'red'
+                  personal_portfolio_analysis?.risk_analysis?.concentration_risk === 'LOW' ? 'green' :
+                  personal_portfolio_analysis?.risk_analysis?.concentration_risk === 'MEDIUM' ? 'orange' : 'red'
                 }>
-                  {personal_portfolio_analysis.risk_analysis.concentration_risk}
+                  {personal_portfolio_analysis?.risk_analysis?.concentration_risk || 'N/A'}
                 </Tag>
               </div>
               <div style={{ marginBottom: 8 }}>
                 <Text>En Büyük Pozisyon: </Text>
-                <Text strong>{personal_portfolio_analysis.risk_analysis.largest_position_weight}%</Text>
+                <Text strong>{personal_portfolio_analysis?.risk_analysis?.largest_position_weight || 0}%</Text>
               </div>
               <div>
                 <Text>Pozisyon Sayısı: </Text>
-                <Text strong>{personal_portfolio_analysis.risk_analysis.number_of_positions}</Text>
+                <Text strong>{personal_portfolio_analysis?.risk_analysis?.number_of_positions || 0}</Text>
               </div>
             </Card>
           </Col>
@@ -356,7 +391,7 @@ const PersonalPortfolioPanel = () => {
             <Card size="small" title="Öneriler">
               <List
                 size="small"
-                dataSource={personal_portfolio_analysis.portfolio_recommendations}
+                dataSource={personal_portfolio_analysis?.portfolio_recommendations || []}
                 renderItem={(item) => (
                   <List.Item>
                     <Text>{item}</Text>
@@ -371,7 +406,15 @@ const PersonalPortfolioPanel = () => {
   };
 
   const renderRecommendations = () => {
-    if (!recommendations) return null;
+    if (!recommendations) {
+      return (
+        <Alert
+          message="Kişisel öneriler için butona tıklayın"
+          type="info"
+          showIcon
+        />
+      );
+    }
 
     const { personal_recommendations } = recommendations;
 
@@ -380,7 +423,7 @@ const PersonalPortfolioPanel = () => {
         <Col xs={24} md={12}>
           <Card title="Pozisyon Önerileri" size="small">
             <List
-              dataSource={personal_recommendations.position_specific}
+              dataSource={personal_recommendations?.position_specific || []}
               renderItem={(item) => (
                 <List.Item>
                   <div style={{ width: '100%' }}>
@@ -400,7 +443,7 @@ const PersonalPortfolioPanel = () => {
                     <div style={{ marginTop: 4 }}>
                       <Text>Getiri: </Text>
                       <Text style={{ color: item.current_return >= 0 ? '#3f8600' : '#cf1322' }}>
-                        {item.current_return >= 0 ? '+' : ''}{item.current_return.toFixed(2)}%
+                        {item.current_return >= 0 ? '+' : ''}{item.current_return?.toFixed(2) || 0}%
                       </Text>
                     </div>
                   </div>
@@ -413,7 +456,7 @@ const PersonalPortfolioPanel = () => {
         <Col xs={24} md={12}>
           <Card title="Genel Öneriler" size="small">
             <List
-              dataSource={personal_recommendations.general_recommendations}
+              dataSource={personal_recommendations?.general_recommendations || []}
               renderItem={(item) => (
                 <List.Item>
                   <div>
@@ -515,7 +558,6 @@ const PersonalPortfolioPanel = () => {
         <Form.Item 
           label="Alış Tarihi" 
           name="purchase_date"
-          initialValue={new Date()}
         >
           <DatePicker style={{ width: '100%' }} />
         </Form.Item>
@@ -534,6 +576,17 @@ const PersonalPortfolioPanel = () => {
     </Modal>
   );
 
+  if (loading && !portfolioData) {
+    return (
+      <div style={{ textAlign: 'center', padding: 50 }}>
+        <Spin size="large" />
+        <div style={{ marginTop: 16 }}>
+          <Text>Portföy verileri yükleniyor...</Text>
+        </div>
+      </div>
+    );
+  }
+
   return (
     <div>
       <div style={{ marginBottom: 16 }}>
@@ -543,44 +596,38 @@ const PersonalPortfolioPanel = () => {
         </Space>
       </div>
 
-      {loading && !portfolioData ? (
-        <div style={{ textAlign: 'center', padding: 50 }}>
-          <Spin size="large" />
-        </div>
-      ) : (
-        <Tabs defaultActiveKey="positions">
-          <TabPane tab="Pozisyonlarım" key="positions">
-            {renderPortfolioSummary()}
-            {renderPositionsTable()}
-          </TabPane>
-          
-          <TabPane tab="Performans Analizi" key="performance">
-            <div style={{ marginBottom: 16 }}>
-              <Button 
-                type="primary" 
-                onClick={analyzePortfolio}
-                loading={loading}
-              >
-                Portföy Analizi Yap
-              </Button>
-            </div>
-            {renderPerformanceAnalysis()}
-          </TabPane>
-          
-          <TabPane tab="Öneriler" key="recommendations">
-            <div style={{ marginBottom: 16 }}>
-              <Button 
-                type="primary" 
-                onClick={getRecommendations}
-                loading={loading}
-              >
-                Kişisel Öneriler Al
-              </Button>
-            </div>
-            {renderRecommendations()}
-          </TabPane>
-        </Tabs>
-      )}
+      <Tabs defaultActiveKey="positions">
+        <TabPane tab="Pozisyonlarım" key="positions">
+          {renderPortfolioSummary()}
+          {renderPositionsTable()}
+        </TabPane>
+        
+        <TabPane tab="Performans Analizi" key="performance">
+          <div style={{ marginBottom: 16 }}>
+            <Button 
+              type="primary" 
+              onClick={analyzePortfolio}
+              loading={loading}
+            >
+              Portföy Analizi Yap
+            </Button>
+          </div>
+          {renderPerformanceAnalysis()}
+        </TabPane>
+        
+        <TabPane tab="Öneriler" key="recommendations">
+          <div style={{ marginBottom: 16 }}>
+            <Button 
+              type="primary" 
+              onClick={getRecommendations}
+              loading={loading}
+            >
+              Kişisel Öneriler Al
+            </Button>
+          </div>
+          {renderRecommendations()}
+        </TabPane>
+      </Tabs>
 
       {renderAddPositionModal()}
 

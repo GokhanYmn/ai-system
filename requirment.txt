@@ -1,0 +1,11 @@
+fastapi
+uvicorn
+psutil
+pandas
+numpy
+yfinance
+requests
+scikit-learn
+matplotlib
+beautifulsoup4
+yfinance
