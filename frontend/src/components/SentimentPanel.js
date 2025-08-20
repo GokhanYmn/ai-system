@@ -338,7 +338,7 @@ const SentimentPanel = () => {
                     dataKey="value"
                   >
                     {Object.entries(social_sentiment_analysis.sentiment_distribution).map((entry, index) => (
-                      <Cell key={`cell-${index}`} fill={['#f5222d', '#faad14', '#d9d9d9', '#52c41a', '#1890ff'][index]} />
+                      <Cell key={`cell-${index}`} fill={['#f5222d', '#faad14', '#30639cff', '#52c41a', '#1890ff'][index]} />
                     ))}
                   </Pie>
                   <Tooltip />
