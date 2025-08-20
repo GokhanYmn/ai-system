@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect } from 'react';
 import { Layout, Card, Row, Col, Statistic, Button, Select, Alert, Spin, Typography, Tabs, Table } from 'antd';
 import { 
@@ -9,11 +10,16 @@ import {
   ThunderboltOutlined,
   GlobalOutlined,
   BarChartOutlined,
-  BellOutlined
+  BellOutlined,
+  BankOutlined,
+  HeartOutlined
 } from '@ant-design/icons';
 import { apiService } from '../services/api';
 import NotificationPanel from './NotificationPanel';
 import PerformanceDashboard from './PerformanceDashboard';
+import PortfolioPanel from './PortfolioPanel';
+import SentimentPanel from './SentimentPanel';
+import PersonalPortfolioPanel from './PersonalPortfolioPanel';
 
 const { Header, Content } = Layout;
 const { Title, Text } = Typography;
@@ -54,6 +60,8 @@ const Dashboard = () => {
       let response;
       if (analysisType === 'quick') {
         response = await apiService.quickAnalysis(symbol);
+      } else if (analysisType === 'enhanced') {
+        response = await apiService.comprehensiveAnalysisPlus(symbol);
       } else {
         response = await apiService.comprehensiveAnalysis(symbol);
       }
@@ -250,12 +258,12 @@ const Dashboard = () => {
         </Col>
         <Col xs={24} sm={12} md={8}>
           <Button
-            onClick={() => runAnalysis('quick')}
+            onClick={() => runAnalysis('enhanced')}
             loading={analysisLoading}
             icon={<ThunderboltOutlined />}
             style={{ width: '100%' }}
           >
-            Hızlı Analiz
+            Gelişmiş Analiz
           </Button>
         </Col>
       </Row>
@@ -272,6 +280,17 @@ const Dashboard = () => {
             type="info"
             showIcon
           />
+          
+          {analysisResult.enhanced_features && (
+            <div style={{ marginTop: 16 }}>
+              <Text strong>Gelişmiş Özellikler:</Text>
+              <ul>
+                {analysisResult.enhanced_features.map((feature, index) => (
+                  <li key={index}>{feature}</li>
+                ))}
+              </ul>
+            </div>
+          )}
         </Card>
       )}
     </Card>
@@ -307,6 +326,46 @@ const Dashboard = () => {
       children: renderAnalysisPanel(),
     },
     {
+      key: 'portfolio',
+      label: (
+        <span>
+          <DollarOutlined />
+          Portföy Yönetimi
+        </span>
+      ),
+      children: <PortfolioPanel />,
+    },
+    {
+      key: 'personal-portfolio',
+      label: (
+        <span>
+          <BankOutlined />
+          Kişisel Portföy
+        </span>
+      ),
+      children: <PersonalPortfolioPanel />,
+    },
+    {
+      key: 'sentiment',
+      label: (
+        <span>
+          <HeartOutlined />
+          Piyasa Duyarlılığı
+        </span>
+      ),
+      children: <SentimentPanel />,
+    },
+    {
+      key: 'performance',
+      label: (
+        <span>
+          <BarChartOutlined />
+          Performans
+        </span>
+      ),
+      children: <PerformanceDashboard />,
+    },
+    {
       key: 'notifications',
       label: (
         <span>
@@ -335,25 +394,6 @@ const Dashboard = () => {
         </Card>
       ),
     },
-    {
-      key: 'performance',
-      label: (
-        <span>
-          <BarChartOutlined />
-          Performans
-        </span>
-      ),
-      children: (
-        <Card title="Sistem Performansı">
-          <Alert
-            message="Yakında"
-            description="Performans metrikleri geliştirilme aşamasında..."
-            type="info"
-            showIcon
-          />
-        </Card>
-      ),
-    },
   ];
 
   return (
@@ -369,7 +409,7 @@ const Dashboard = () => {
         <div style={{ display: 'flex', alignItems: 'center' }}>
           <RobotOutlined style={{ fontSize: '24px', color: '#1890ff', marginRight: '12px' }} />
           <Title level={3} style={{ margin: 0, color: '#1890ff' }}>
-            🤖 Multi-Agent Finans AI Sistemi
+            Multi-Agent Finans AI Sistemi
           </Title>
         </div>
         <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
@@ -384,7 +424,7 @@ const Dashboard = () => {
             {systemStatus?.system_status?.toUpperCase() || 'LOADING'}
           </span>
           <Text type="secondary" style={{ fontSize: '12px' }}>
-            v4.0.0
+            v5.0.0 - 13 Agent
           </Text>
         </div>
       </Header>

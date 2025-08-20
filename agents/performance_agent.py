@@ -1,4 +1,4 @@
-import psutil
+import psutil # pyright: ignore[reportMissingModuleSource]
 import time
 import threading
 import asyncio

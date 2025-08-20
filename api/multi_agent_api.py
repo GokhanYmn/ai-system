@@ -13,6 +13,7 @@ agents_path = os.path.join(project_root, 'agents')
 sys.path.insert(0, project_root)
 sys.path.insert(0, agents_path)
 
+# Mevcut agent'lar
 from news_agent import NewsAgent
 from financial_agent import FinancialAgent
 from technical_agent import TechnicalAgent
@@ -24,6 +25,12 @@ from coordinator_agent import CoordinatorAgent
 from report_agent import ReportAgent
 from notification_agent import NotificationAgent
 
+# Yeni eklenen agent'lar
+from portfolio_management_agent import PortfolioManagementAgent
+from personal_portfolio_agent import PersonalPortfolioAgent
+from sentiment_analysis_agent import SentimentAnalysisAgent
+from performance_agent import PerformanceAgent
+
 # Global variables
 agent_system = None
 
@@ -34,8 +41,9 @@ async def lifespan(app: FastAPI):
     
     print("🚀 Multi-Agent Sistemi başlatılıyor...")
     
-    # Initialize all agents
+    # Initialize all agents (13 agent)
     agents = {
+        # Mevcut agent'lar
         'news_agent': NewsAgent(),
         'financial_agent': FinancialAgent(),
         'technical_agent': TechnicalAgent(),
@@ -44,7 +52,13 @@ async def lifespan(app: FastAPI):
         'trading_agent': TradingAgent(),
         'learning_agent': LearningAgent(),
         'report_agent': ReportAgent(),
-        'notification_agent': NotificationAgent()
+        'notification_agent': NotificationAgent(),
+        
+        # Yeni eklenen agent'lar
+        'portfolio_management_agent': PortfolioManagementAgent(),
+        'personal_portfolio_agent': PersonalPortfolioAgent(),
+        'sentiment_analysis_agent': SentimentAnalysisAgent(),
+        'performance_agent': PerformanceAgent()
     }
     
     # Initialize coordinator
@@ -68,8 +82,8 @@ async def lifespan(app: FastAPI):
 
 app = FastAPI(
     title="🤖 Multi-Agent Finans AI Sistemi",
-    description="7 Uzman AI Agent ile Kapsamlı Finansal Analiz",
-    version="4.0.0",
+    description="13 Uzman AI Agent ile Kapsamlı Finansal Analiz",
+    version="5.0.0",
     lifespan=lifespan
 )
 
@@ -84,7 +98,7 @@ app.add_middleware(
 
 class AnalysisRequest(BaseModel):
     symbol: str
-    analysis_depth: str = "full"  # full, quick, custom
+    analysis_depth: str = "full"
 
 class TaskRequest(BaseModel):
     agent_name: str
@@ -95,7 +109,7 @@ class TaskRequest(BaseModel):
 def root():
     return {
         "message": "🤖 Multi-Agent Finans AI Sistemi",
-        "version": "4.0.0",
+        "version": "5.0.0",
         "active_agents": len(agent_system['agents']) if agent_system else 0,
         "capabilities": [
             "📰 Haber Analizi",
@@ -105,16 +119,33 @@ def root():
             "🧠 Karar Verme",
             "💼 İşlem Stratejisi",
             "📚 Sürekli Öğrenme",
-            "🎯 Koordinasyon"
+            "🎯 Koordinasyon",
+            "💰 Portföy Yönetimi",
+            "👤 Kişisel Portföy Takibi",
+            "❤️ Piyasa Duyarlılığı",
+            "⚡ Performans İzleme",
+            "📄 Rapor Oluşturma"
+        ],
+        "new_features": [
+            "Portfolio optimization with Modern Portfolio Theory",
+            "Personal portfolio tracking with P&L analysis",
+            "Social media sentiment analysis",
+            "Fear & Greed Index calculation",
+            "Real-time performance monitoring",
+            "Enhanced risk management"
         ],
         "endpoints": {
             "comprehensive_analysis": "/analysis/comprehensive/{symbol}",
+            "enhanced_analysis": "/analysis/comprehensive-plus/{symbol}",
+            "portfolio_optimization": "/portfolio/optimize",
+            "personal_portfolio": "/personal-portfolio/*",
+            "sentiment_analysis": "/sentiment/*",
+            "performance_monitoring": "/performance/*",
             "agent_status": "/system/agents/status",
-            "system_health": "/system/health",
-            "individual_agent": "/agents/{agent_name}/task"
+            "system_health": "/system/health"
         }
     }
-
+# Mevcut endpoint'ler (korunuyor)
 @app.get("/system/agents/status")
 def get_agents_status():
     """Tüm agent'ların durumunu göster"""
@@ -153,7 +184,6 @@ def comprehensive_analysis(symbol: str):
     
     coordinator = agent_system['coordinator']
     
-    # Run full analysis workflow
     analysis_task = {
         "type": "run_full_analysis",
         "symbol": symbol.upper()
@@ -170,7 +200,7 @@ def comprehensive_analysis(symbol: str):
         "timestamp": result.get('timestamp'),
         "recommendation": result['recommendation'].get('overall_signal', 'BEKLE'),
         "confidence": result['recommendation'].get('confidence', 50),
-        "final_score": result['recommendation'].get('confidence', 50),  # Ana skor ekle
+        "final_score": result['recommendation'].get('confidence', 50),
         "execution_summary": result['execution_summary'],
         "agent_contributions": result['agent_contributions'],
         "analysis_results": {
@@ -180,46 +210,6 @@ def comprehensive_analysis(symbol: str):
         },
         "detailed_results": "Detaylı sonuçlar için /analysis/detailed/{analysis_id} endpoint'ini kullanın"
     }
-
-@app.post("/agents/{agent_name}/task")
-def execute_agent_task(agent_name: str, task_request: TaskRequest):
-    """Belirli bir agent'a özel görev ver"""
-    if not agent_system:
-        raise HTTPException(status_code=503, detail="Sistem başlatılmadı")
-    
-    if agent_name not in agent_system['agents']:
-        raise HTTPException(status_code=404, detail=f"Agent '{agent_name}' bulunamadı")
-    
-    agent = agent_system['agents'][agent_name]
-    
-    # Create task
-    task = {
-        "type": task_request.task_type,
-        **task_request.parameters
-    }
-    
-    try:
-        result = agent.process_task(task)
-        return {
-            "agent": agent_name,
-            "task_type": task_request.task_type,
-            "result": result,
-            "agent_status": agent.get_status()
-        }
-    except Exception as e:
-        raise HTTPException(status_code=500, detail=f"Agent görevi başarısız: {str(e)}")
-
-@app.get("/agents/{agent_name}/status")
-def get_agent_status(agent_name: str):
-    """Belirli agent'ın durumunu göster"""
-    if not agent_system:
-        raise HTTPException(status_code=503, detail="Sistem başlatılmadı")
-    
-    if agent_name not in agent_system['agents']:
-        raise HTTPException(status_code=404, detail=f"Agent '{agent_name}' bulunamadı")
-    
-    agent = agent_system['agents'][agent_name]
-    return agent.get_status()
 
 @app.get("/analysis/quick/{symbol}")
 def quick_analysis(symbol: str):
@@ -231,38 +221,29 @@ def quick_analysis(symbol: str):
     quick_results = {}
     
     try:
-        # News analysis
         news_task = {"type": "get_kap_news", "limit": 3}
         quick_results['news'] = agents['news_agent'].process_task(news_task)
         
-        # Financial ratios
         financial_task = {"type": "calculate_ratios", "company_code": symbol}
         quick_results['financial'] = agents['financial_agent'].process_task(financial_task)
         
-        # Technical signals
         technical_task = {"type": "generate_signals", "price_data": None}
         quick_results['technical'] = agents['technical_agent'].process_task(technical_task)
         
-        # Quick recommendation - String olarak döndür
-        quick_recommendation = "BEKLE"  # Default string
-        
-        # Simple scoring
+        quick_recommendation = "BEKLE"
         scores = []
-        financial_score = 50  # Default
-        technical_score = 50  # Default
+        financial_score = 50
+        technical_score = 50
         
-        # Financial score
         if quick_results['financial'].get('investment_score'):
             financial_score = quick_results['financial']['investment_score']
             scores.append(financial_score)
         
-        # Technical score
         if quick_results['technical'].get('technical_score'):
             tech_score = quick_results['technical']['technical_score']
-            technical_score = 50 + tech_score * 5  # Convert to 0-100 scale
+            technical_score = 50 + tech_score * 5
             scores.append(technical_score)
         
-        # Calculate recommendation
         if scores:
             avg_score = sum(scores) / len(scores)
             if avg_score >= 75:
@@ -276,13 +257,12 @@ def quick_analysis(symbol: str):
             else:
                 quick_recommendation = "BEKLE"
         
-        # Confidence calculation
         confidence_level = "Yüksek" if len(scores) >= 2 else "Orta"
         
         return {
             "symbol": symbol.upper(),
-            "quick_recommendation": str(quick_recommendation),  # String garantili
-            "recommendation": str(quick_recommendation),        # Hem bu da string
+            "quick_recommendation": str(quick_recommendation),
+            "recommendation": str(quick_recommendation),
             "confidence": confidence_level,
             "final_score": round(sum(scores) / len(scores), 1) if scores else 50,
             "analysis_results": {
@@ -316,29 +296,398 @@ def quick_analysis(symbol: str):
             "note": "Analiz sırasında hata oluştu"
         }
 
-@app.get("/learning/performance")
-def get_learning_performance():
-    """Öğrenme performansını göster"""
+# YENİ PORTFOLIO MANAGEMENT ENDPOINTS
+@app.post("/portfolio/optimize")
+def optimize_portfolio(request: dict):
+    """Portföy optimizasyonu"""
     if not agent_system:
         raise HTTPException(status_code=503, detail="Sistem başlatılmadı")
     
-    learning_agent = agent_system['agents']['learning_agent']
+    portfolio_agent = agent_system['agents']['portfolio_management_agent']
     
-    # Get learning metrics
-    if hasattr(learning_agent, 'get_agent_metrics'):
-        metrics = learning_agent.get_agent_metrics()
-    else:
-        metrics = {
-            "epsilon": learning_agent.epsilon,
-            "learning_rate": learning_agent.learning_rate
-        }
-    
-    return {
-        "learning_status": "active",
-        "agent_metrics": metrics,
-        "performance_trend": "stable",
-        "recommendation": "Sistem sürekli öğrenmeye devam ediyor"
+    task = {
+        "type": "optimize_portfolio",
+        "user_profile": request.get('user_profile'),
+        "market_data": request.get('market_data')
     }
+    
+    result = portfolio_agent.process_task(task)
+    return result
+
+@app.post("/portfolio/allocate")
+def calculate_asset_allocation(request: dict):
+    """Varlık dağılımı hesaplama"""
+    if not agent_system:
+        raise HTTPException(status_code=503, detail="Sistem başlatılmadı")
+    
+    portfolio_agent = agent_system['agents']['portfolio_management_agent']
+    
+    task = {
+        "type": "asset_allocation",
+        "risk_tolerance": request.get('risk_tolerance'),
+        "investment_amount": request.get('investment_amount')
+    }
+    
+    result = portfolio_agent.process_task(task)
+    return result
+
+@app.post("/portfolio/rebalance")
+def rebalance_portfolio(request: dict):
+    """Portföy dengeleme"""
+    if not agent_system:
+        raise HTTPException(status_code=503, detail="Sistem başlatılmadı")
+    
+    portfolio_agent = agent_system['agents']['portfolio_management_agent']
+    
+    task = {
+        "type": "rebalance_portfolio",
+        "current_portfolio": request.get('current_portfolio'),
+        "target_allocation": request.get('target_allocation')
+    }
+    
+    result = portfolio_agent.process_task(task)
+    return result
+
+# YENİ PERSONAL PORTFOLIO ENDPOINTS
+@app.post("/personal-portfolio/add-position")
+def add_portfolio_position(request: dict):
+    """Kişisel portföye pozisyon ekle"""
+    if not agent_system:
+        raise HTTPException(status_code=503, detail="Sistem başlatılmadı")
+    
+    personal_agent = agent_system['agents']['personal_portfolio_agent']
+    
+    task = {
+        "type": "add_portfolio_position",
+        "user_id": request.get('user_id'),
+        "position_data": request.get('position_data')
+    }
+    
+    result = personal_agent.process_task(task)
+    return result
+
+@app.post("/personal-portfolio/update-prices")
+def update_portfolio_prices(request: dict):
+    """Portföy fiyatlarını güncelle"""
+    if not agent_system:
+        raise HTTPException(status_code=503, detail="Sistem başlatılmadı")
+    
+    personal_agent = agent_system['agents']['personal_portfolio_agent']
+    
+    task = {
+        "type": "update_portfolio",
+        "user_id": request.get('user_id'),
+        "current_prices": request.get('current_prices')
+    }
+    
+    result = personal_agent.process_task(task)
+    return result
+
+@app.get("/personal-portfolio/performance/{user_id}")
+def get_portfolio_performance(user_id: str):
+    """Portföy performansını al"""
+    if not agent_system:
+        raise HTTPException(status_code=503, detail="Sistem başlatılmadı")
+    
+    personal_agent = agent_system['agents']['personal_portfolio_agent']
+    
+    task = {
+        "type": "calculate_portfolio_performance",
+        "user_id": user_id
+    }
+    
+    result = personal_agent.process_task(task)
+    return result
+
+@app.post("/personal-portfolio/analyze")
+def analyze_personal_portfolio(request: dict):
+    """Kişisel portföy analizi"""
+    if not agent_system:
+        raise HTTPException(status_code=503, detail="Sistem başlatılmadı")
+    
+    personal_agent = agent_system['agents']['personal_portfolio_agent']
+    
+    task = {
+        "type": "analyze_personal_portfolio",
+        "user_id": request.get('user_id'),
+        "market_data": request.get('market_data')
+    }
+    
+    result = personal_agent.process_task(task)
+    return result
+
+@app.post("/personal-portfolio/recommendations")
+def get_personal_recommendations(request: dict):
+    """Kişisel öneriler al"""
+    if not agent_system:
+        raise HTTPException(status_code=503, detail="Sistem başlatılmadı")
+    
+    personal_agent = agent_system['agents']['personal_portfolio_agent']
+    
+    task = {
+        "type": "generate_personal_recommendations",
+        "user_id": request.get('user_id'),
+        "market_analysis": request.get('market_analysis')
+    }
+    
+    result = personal_agent.process_task(task)
+    return result
+
+# YENİ SENTIMENT ANALYSIS ENDPOINTS
+@app.post("/sentiment/social/{symbol}")
+def analyze_social_sentiment(symbol: str, platform: str = "twitter"):
+    """Sosyal medya sentiment analizi"""
+    if not agent_system:
+        raise HTTPException(status_code=503, detail="Sistem başlatılmadı")
+    
+    sentiment_agent = agent_system['agents']['sentiment_analysis_agent']
+    
+    task = {
+        "type": "analyze_social_sentiment",
+        "symbol": symbol.upper(),
+        "platform": platform
+    }
+    
+    result = sentiment_agent.process_task(task)
+    return result
+
+@app.post("/sentiment/news")
+def analyze_news_sentiment(request: dict):
+    """Haber sentiment analizi"""
+    if not agent_system:
+        raise HTTPException(status_code=503, detail="Sistem başlatılmadı")
+    
+    sentiment_agent = agent_system['agents']['sentiment_analysis_agent']
+    
+    task = {
+        "type": "analyze_news_sentiment",
+        "news_data": request.get('news_data')
+    }
+    
+    result = sentiment_agent.process_task(task)
+    return result
+
+@app.get("/sentiment/fear-greed")
+def get_fear_greed_index():
+    """Korku & Açgözlülük endeksi"""
+    if not agent_system:
+        raise HTTPException(status_code=503, detail="Sistem başlatılmadı")
+    
+    sentiment_agent = agent_system['agents']['sentiment_analysis_agent']
+    
+    task = {
+        "type": "calculate_fear_greed_index",
+        "market_data": None
+    }
+    
+    result = sentiment_agent.process_task(task)
+    return result
+
+@app.get("/sentiment/market")
+def get_market_sentiment():
+    """Genel piyasa sentiment"""
+    if not agent_system:
+        raise HTTPException(status_code=503, detail="Sistem başlatılmadı")
+    
+    sentiment_agent = agent_system['agents']['sentiment_analysis_agent']
+    
+    task = {
+        "type": "get_market_sentiment",
+        "symbols": ['THYAO', 'AKBNK', 'BIMAS', 'ASELS', 'KCHOL']
+    }
+    
+    result = sentiment_agent.process_task(task)
+    return result
+
+@app.post("/sentiment/signals/{symbol}")
+def get_sentiment_signals(symbol: str):
+    """Sentiment bazlı sinyaller"""
+    if not agent_system:
+        raise HTTPException(status_code=503, detail="Sistem başlatılmadı")
+    
+    sentiment_agent = agent_system['agents']['sentiment_analysis_agent']
+    
+    task = {
+        "type": "sentiment_based_signals",
+        "symbol": symbol.upper()
+    }
+    
+    result = sentiment_agent.process_task(task)
+    return result
+
+@app.get("/sentiment/trends/{symbol}")
+def get_sentiment_trends(symbol: str, timeframe: str = "7d"):
+    """Sentiment trend takibi"""
+    if not agent_system:
+        raise HTTPException(status_code=503, detail="Sistem başlatılmadı")
+    
+    sentiment_agent = agent_system['agents']['sentiment_analysis_agent']
+    
+    task = {
+        "type": "track_sentiment_trends",
+        "symbol": symbol.upper(),
+        "timeframe": timeframe
+    }
+    
+    result = sentiment_agent.process_task(task)
+    return result
+
+# PERFORMANCE ENDPOINTS
+@app.get("/performance/dashboard")
+def get_performance_dashboard():
+    """Performance dashboard verilerini al"""
+    if not agent_system:
+        raise HTTPException(status_code=503, detail="Sistem başlatılmadı")
+    
+    performance_agent = agent_system['agents']['performance_agent']
+    
+    try:
+        dashboard_data = performance_agent.get_performance_dashboard_data()
+        return dashboard_data
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Dashboard verisi alınamadı: {str(e)}")
+
+@app.post("/performance/start")
+def start_performance_monitoring():
+    """Performance monitoring başlat"""
+    if not agent_system:
+        raise HTTPException(status_code=503, detail="Sistem başlatılmadı")
+    
+    performance_agent = agent_system['agents']['performance_agent']
+    
+    task = {"type": "start_monitoring"}
+    result = performance_agent.process_task(task)
+    
+    if not result.get('success'):
+        raise HTTPException(status_code=400, detail=result.get('error', 'Monitoring başlatılamadı'))
+    
+    return result
+
+@app.post("/performance/stop")
+def stop_performance_monitoring():
+    """Performance monitoring durdur"""
+    if not agent_system:
+        raise HTTPException(status_code=503, detail="Sistem başlatılmadı")
+    
+    performance_agent = agent_system['agents']['performance_agent']
+    
+    task = {"type": "stop_monitoring"}
+    result = performance_agent.process_task(task)
+    
+    return result
+
+@app.post("/performance/optimize")
+def optimize_system_performance():
+    """Sistem performansını optimize et"""
+    if not agent_system:
+        raise HTTPException(status_code=503, detail="Sistem başlatılmadı")
+    
+    performance_agent = agent_system['agents']['performance_agent']
+    
+    task = {"type": "optimize_system"}
+    result = performance_agent.process_task(task)
+    
+    return result
+
+# GELİŞMİŞ KAPSAMLI ANALİZ (Tüm Agent'ları Kullanır)
+@app.post("/analysis/comprehensive-plus/{symbol}")
+def comprehensive_analysis_plus(symbol: str):
+    """Yeni agent'larla gelişmiş kapsamlı analiz"""
+    if not agent_system:
+        raise HTTPException(status_code=503, detail="Sistem başlatılmadı")
+    
+    coordinator = agent_system['coordinator']
+    
+    # Mevcut analysis'i çalıştır
+    base_result = coordinator.process_task({
+        "type": "run_full_analysis",
+        "symbol": symbol.upper()
+    })
+    
+    if not base_result.get('success'):
+        raise HTTPException(status_code=500, detail=base_result.get('error', 'Analiz başarısız'))
+    
+    # Sentiment analizi ekle
+    sentiment_agent = agent_system['agents']['sentiment_analysis_agent']
+    sentiment_result = sentiment_agent.process_task({
+        "type": "analyze_social_sentiment",
+        "symbol": symbol.upper(),
+        "platform": "twitter"
+    })
+    
+    sentiment_signals = sentiment_agent.process_task({
+        "type": "sentiment_based_signals",
+        "symbol": symbol.upper()
+    })
+    
+    # Portfolio önerisi
+    portfolio_agent = agent_system['agents']['portfolio_management_agent']
+    portfolio_recommendation = portfolio_agent.process_task({
+        "type": "generate_portfolio_recommendation",
+        "user_data": {
+            'risk_tolerance': 'moderate',
+            'investment_amount': 100000,
+            'age': 35
+        }
+    })
+    
+    # Enhanced result
+    enhanced_result = base_result.copy()
+    enhanced_result.update({
+        "sentiment_analysis": sentiment_result.get('social_sentiment_analysis', {}),
+        "sentiment_signals": sentiment_signals.get('sentiment_signals', {}),
+        "portfolio_recommendation": portfolio_recommendation.get('comprehensive_recommendation', {}),
+        "enhanced_features": [
+            "Social media sentiment analysis",
+            "Portfolio optimization recommendations", 
+            "Sentiment-based trading signals",
+            "Risk-adjusted position sizing",
+            "Fear & Greed Index integration",
+            "Personal portfolio context"
+        ]
+    })
+    
+    return enhanced_result
+
+# Mevcut endpoint'ler devam ediyor...
+@app.post("/agents/{agent_name}/task")
+def execute_agent_task(agent_name: str, task_request: TaskRequest):
+    """Belirli bir agent'a özel görev ver"""
+    if not agent_system:
+        raise HTTPException(status_code=503, detail="Sistem başlatılmadı")
+    
+    if agent_name not in agent_system['agents']:
+        raise HTTPException(status_code=404, detail=f"Agent '{agent_name}' bulunamadı")
+    
+    agent = agent_system['agents'][agent_name]
+    
+    task = {
+        "type": task_request.task_type,
+        **task_request.parameters
+    }
+    
+    try:
+        result = agent.process_task(task)
+        return {
+            "agent": agent_name,
+            "task_type": task_request.task_type,
+            "result": result,
+            "agent_status": agent.get_status()
+        }
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Agent görevi başarısız: {str(e)}")
+
+@app.get("/agents/{agent_name}/status")
+def get_agent_status(agent_name: str):
+    """Belirli agent'ın durumunu göster"""
+    if not agent_system:
+        raise HTTPException(status_code=503, detail="Sistem başlatılmadı")
+    
+    if agent_name not in agent_system['agents']:
+        raise HTTPException(status_code=404, detail=f"Agent '{agent_name}' bulunamadı")
+    
+    agent = agent_system['agents'][agent_name]
+    return agent.get_status()
 
 @app.post("/trading/execute")
 def execute_trade(trade_params: dict):
@@ -368,22 +717,19 @@ def generate_analysis_report(symbol: str = "THYAO"):
     
     report_agent = agent_system['agents']['report_agent']
     
-    # Önce hızlı analiz yap
     try:
         agents = agent_system['agents']
         
-        # Agent'lardan veri topla
         financial_result = agents['financial_agent'].process_task({"type": "calculate_ratios", "company_code": symbol})
         technical_result = agents['technical_agent'].process_task({"type": "generate_signals", "price_data": None})
         
-        # Rapor verisi hazırla
         report_data = {
             'symbol': symbol.upper(),
             'analysis_date': datetime.now().isoformat(),
             'recommendation': technical_result.get('overall_signal', 'BEKLE'),
             'confidence': financial_result.get('investment_score', 75),
             'financial_score': financial_result.get('investment_score', 75),
-            'technical_score': abs(technical_result.get('technical_score', 2)) * 20 + 40,  # 0-100 arası
+            'technical_score': abs(technical_result.get('technical_score', 2)) * 20 + 40,
             'news_sentiment': 'Pozitif',
             'current_price': 91.50,
             'target_price': 105.50,
@@ -403,7 +749,6 @@ def generate_analysis_report(symbol: str = "THYAO"):
             }
         }
         
-        # PDF rapor oluştur
         task = {"type": "generate_pdf_report", "report_data": report_data}
         result = report_agent.process_task(task)
         
@@ -436,6 +781,30 @@ def download_report(filename: str):
         filename=filename,
         media_type='application/pdf'
     )
+
+@app.get("/learning/performance")
+def get_learning_performance():
+    """Öğrenme performansını göster"""
+    if not agent_system:
+        raise HTTPException(status_code=503, detail="Sistem başlatılmadı")
+    
+    learning_agent = agent_system['agents']['learning_agent']
+    
+    if hasattr(learning_agent, 'get_agent_metrics'):
+        metrics = learning_agent.get_agent_metrics()
+    else:
+        metrics = {
+            "epsilon": learning_agent.epsilon,
+            "learning_rate": learning_agent.learning_rate
+        }
+    
+    return {
+        "learning_status": "active",
+        "agent_metrics": metrics,
+        "performance_trend": "stable",
+        "recommendation": "Sistem sürekli öğrenmeye devam ediyor"
+    }
+
 def get_system_summary():
     """Sistem özet raporu"""
     if not agent_system:
@@ -444,7 +813,6 @@ def get_system_summary():
     coordinator = agent_system['coordinator']
     agents = agent_system['agents']
     
-    # Get basic stats from each agent
     agent_stats = {}
     total_tasks = 0
     
@@ -474,7 +842,10 @@ def get_system_summary():
             "Multi-source data integration", 
             "Risk-adjusted decision making",
             "Automated trading execution",
-            "Continuous learning and adaptation"
+            "Continuous learning and adaptation",
+            "Portfolio optimization",
+            "Sentiment analysis",
+            "Performance monitoring"
         ]
     }
 

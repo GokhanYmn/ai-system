@@ -194,9 +194,9 @@ class RealDataConnector:
         return {
             'success': True,
             'rates': {
-                'USD_TRY': 30.50,
-                'EUR_TRY': 33.20,
-                'GBP_TRY': 38.75
+                'USD_TRY': 40.50,
+                'EUR_TRY': 43.20,
+                'GBP_TRY': 48.75
             },
             'source': 'MOCK_DATA'
         }
